@@ -22,9 +22,9 @@ This repository contains my customized configuration for the [i3 window manager]
      sudo apt install py3status
      ```
 3. **Bluetooth Tools** (if using the Bluetooth status script)  
-   - E.g., `bluetoothctl`, `bluez`, `bluedevil-wizard`:
+   - E.g., `bluetoothctl`, `bluez` :
      ```bash
-     sudo apt install bluetooth bluez bluedevil
+     sudo apt install bluetooth bluez 
      ```
 4. **Optional Notification Daemon** (e.g., `dunst`) if you want native notifications:
    ```bash
