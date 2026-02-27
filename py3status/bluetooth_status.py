@@ -2,12 +2,13 @@
 import subprocess
 import time
 
+
 class Py3status:
     """
     Bluetooth module for py3status with an 'expanded' mode.
-    Left-click: toggle power
-    Middle-click: show connected devices in i3bar (for 5s)
-    Right-click: open bluedevil-wizard
+    Left-click: reset power
+    Middle-click:
+    Right-click:  show connected devices in i3bar (for 5s)
     """
 
     # How many seconds to display connected devices
@@ -24,19 +25,16 @@ class Py3status:
         Return either the normal "BT On/Off" text or the expanded device list
         (if the user middle-clicked in the last X seconds).
         """
-
+        icon = ""  # Requires a font that supports this glyph
         now = time.time()
 
         # If we are in expanded mode, check if time has elapsed
         if self.expanded:
             if (now - self.expanded_since) < self.EXPANDED_DURATION:
-                # Still within expanded view, show connected devices
-                if not self.connected_info:
-                    # Fallback if we have no info
-                    text = "No connected devices"
-                else:
-                    # For example, show them all on one line
+                text = "No connected devices"
+                if self.connected_info:
                     text = "Connected: " + ", ".join(self.connected_info)
+
                 return {
                     "full_text": text,
                     "color": "#00FFFF",  # e.g., cyan
@@ -50,11 +48,9 @@ class Py3status:
         # Normal display (On/Off)
         powered_on = self._bluetooth_is_on()
         if powered_on:
-            icon = ""  # Requires a font that supports this glyph
             text = f"{icon} On"
             color = "#00FF00"
         else:
-            icon = ""
             text = f"{icon} Off"
             color = "#FF0000"
 
@@ -70,37 +66,38 @@ class Py3status:
             # Left-click → toggle power
             self._toggle_bluetooth()
         elif button == 2:
-            # Middle-click → gather connected devices, show them for 5s
-            self._expand_connected_devices()
+            # Middle-click → open wizard
+            pass
         elif button == 3:
-            # Right-click → open wizard
-            subprocess.Popen(["bluedevil-wizard"])
+            # Right-click → gather connected devices, show them for 5s
+            self._expand_connected_devices()
 
     def _expand_connected_devices(self):
         """Fetch connected devices and switch to expanded view."""
         try:
             output = subprocess.check_output(
-                ["bluetoothctl", "devices", "Connected"],
-                text=True
+                ["bluetoothctl", "devices", "Connected"], text=True
             ).strip()
-            if output:
-                # Each line looks like: "Device XX:XX:XX:XX:XX:XX DeviceName"
-                lines = output.splitlines()
-                # Parse each line to extract just the "DeviceName" or everything
-                connected = []
-                for line in lines:
-                    # e.g., line = "Device 12:34:56:78:9A:BC MyHeadset"
-                    parts = line.split(" ", 2)  # split into 3 parts max
-                    if len(parts) == 3:
-                        # e.g. ["Device", "12:34:56:78:9A:BC", "MyHeadset"]
-                        connected.append(parts[2])  # "MyHeadset"
-                    else:
-                        connected.append(line)       # fallback
-                self.connected_info = connected
-            else:
-                self.connected_info = ["None"]
         except subprocess.CalledProcessError:
+            output = None
             self.connected_info = ["Error listing devices"]
+
+        if output:
+            # Each line looks like: "Device XX:XX:XX:XX:XX:XX DeviceName"
+            lines = output.splitlines()
+            # Parse each line to extract just the "DeviceName" or everything
+            connected = []
+            for line in lines:
+                # e.g., line = "Device 12:34:56:78:9A:BC MyHeadset"
+                parts = line.split(" ", 2)  # split into 3 parts max
+                if len(parts) == 3:
+                    # e.g. ["Device", "12:34:56:78:9A:BC", "MyHeadset"]
+                    connected.append(parts[2])  # "MyHeadset"
+                else:
+                    connected.append(line)  # fallback
+            self.connected_info = connected
+        else:
+            self.connected_info = ["None"]
 
         # Set expanded mode + time
         self.expanded = True
@@ -119,12 +116,11 @@ class Py3status:
             subprocess.run(
                 ["bluetoothctl", "power", "off"],
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                stderr=subprocess.DEVNULL,
             )
         else:
             subprocess.run(
                 ["bluetoothctl", "power", "on"],
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                stderr=subprocess.DEVNULL,
             )
-
