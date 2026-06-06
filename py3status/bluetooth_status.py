@@ -72,6 +72,21 @@ class Py3status:
             # Right-click → gather connected devices, show them for 5s
             self._expand_connected_devices()
 
+    def _grep_battery_info(self, address):
+        output = subprocess.check_output(
+            ["bluetoothctl", "info", address], text=True
+        ).strip()
+
+        battery_percentage = next(
+            (line for line in output.splitlines() if "Battery Percentage: " in line),
+            None,
+        )
+        if not battery_percentage:
+            return "(-1)"
+
+        # last element is battery percentage
+        return battery_percentage.split(" ")[-1]
+
     def _expand_connected_devices(self):
         """Fetch connected devices and switch to expanded view."""
         try:
@@ -91,8 +106,9 @@ class Py3status:
                 # e.g., line = "Device 12:34:56:78:9A:BC MyHeadset"
                 parts = line.split(" ", 2)  # split into 3 parts max
                 if len(parts) == 3:
-                    # e.g. ["Device", "12:34:56:78:9A:BC", "MyHeadset"]
-                    connected.append(parts[2])  # "MyHeadset"
+                    percentage = self._grep_battery_info(parts[1])
+                    device = f"{parts[2]} {percentage}"
+                    connected.append(device)
                 else:
                     connected.append(line)  # fallback
             self.connected_info = connected
